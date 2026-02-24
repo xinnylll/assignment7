@@ -19,18 +19,18 @@
 
 <script>
 // ===================================================================
-// AI Audio Settings
+// AI 音频设置
 // ===================================================================
 let classifier;
-// Your Teachable Machine model URL
+// 你的 Teachable Machine 模型 URL
 let soundModelURL = 'https://teachablemachine.withgoogle.com/models/vlSTYsiek/';
-let currentSoundLabel = 'Initializing microphone...';
+let currentSoundLabel = 'microphone is loading...';
 
-// The class name for loud noise/clapping in your model
+// 你的模型中代表大声噪音/拍手的类别名称
 let noiseName = "noise"; 
 
 // ===================================================================
-// Ink Koi Pond System Variables
+// 水墨锦鲤系统变量
 // ===================================================================
 let lotusLeaves = []; let kois = []; let ripples = []; let inkDrops = [];  
 let rainDrops = []; let paperGrain; let waterLayer; let lotusFlowers = [];
@@ -40,12 +40,12 @@ let bottomPebbles = []; let shoreStones = [];
 const MAX_RIPPLES = 50; const MAX_INK_DROPS = 30; const MAX_FLOWERS = 15; const MAX_FOOD = 40; 
 let interactionMode = 'ink'; 
 
-// 1. Preload Model
+// 1. 预加载模型
 function preload() {
   classifier = ml5.soundClassifier(soundModelURL + 'model.json');
 }
 
-// 2. Terrain & Depth Algorithms
+// 2. 地形与深度算法
 function getShoreY(x) {
   let diagonalY = map(x, width * 0.25, width, 0, height * 0.5);
   let macroCurve = map(noise(x * 0.0015 + 500), 0, 1, -120, 120); 
@@ -62,11 +62,11 @@ function getPondDepth(x, y) {
 function getPerspectiveScale(y) { return map(y, 0, height, 0.4, 1.2); }
 function getPerspectiveOpacity(y) { return map(y, 0, height, 80, 255); }
 
-// 3. Setup
+// 3. 初始化设置
 function setup() {
   createCanvas(750, 500);
   
-  // Start classifying audio
+  // 开始对音频进行分类
   classifier.classify(gotResult);
 
   initPaperTexture(); initWaterDepthLayer(); createDistantMountains(); 
@@ -90,7 +90,7 @@ function setup() {
   for (let i = 0; i < 4; i++) if (lotusLeaves.length > 0) lotusFlowers.push(new LotusFlower(random(lotusLeaves).pos.x + random(-30, 30), random(lotusLeaves).pos.y + random(-20, 20)));
 }
 
-// 4. Main Draw Loop
+// 4. 主绘制循环
 function draw() {
   image(paperGrain, 0, 0); image(waterLayer, 0, 0); if (distantMountains) image(distantMountains, 0, 0);
   blendMode(MULTIPLY); if (random(1) < 0.3) rainDrops.push(new RainDrop());
@@ -106,7 +106,7 @@ function draw() {
   if (inkDrops.length > MAX_INK_DROPS) inkDrops.splice(0, inkDrops.length - MAX_INK_DROPS); inkDrops = inkDrops.filter(i => !i.isDead());
 
   // ==========================================
-  // 【Core】Koi AI & Biomimicry Behavior
+  // 【核心】锦鲤 AI 与 仿生行为
   // ==========================================
   for (let koi of kois) {
     let target = null, recordDist = Infinity;
@@ -124,7 +124,7 @@ function draw() {
     if (mouseIsPressed && dist(koi.pos.x, koi.pos.y, mouseX, mouseY) < 150) { let flee = p5.Vector.sub(koi.pos, createVector(mouseX, mouseY)); flee.setMag(0.3); koi.applyForce(flee); }
 
     // ------------------------------------------------
-    // 🐟 Biomimicry: C-start Startle Response (Smooth Calm Down)
+    // 🐟 仿生：C-start 惊吓反应（平滑平复）
     // ------------------------------------------------
     // 初始化锦鲤的情绪值 (0代表平静，1代表极度惊吓)
     if (koi.panic === undefined) koi.panic = 0;
@@ -157,13 +157,13 @@ function draw() {
   blendMode(BLEND); drawModeIndicator(); drawCalligraphy(); drawSoundHUD(); 
 }
 
-// 5. Audio Result Callback
+// 5. 音频结果回调
 function gotResult(error, results) { 
   if (error) { console.error(error); return; } 
   currentSoundLabel = results[0].label; 
 }
 
-// 6. Draw UI (Widened background to fit English text)
+// 6. 绘制 UI (加宽背景以适应英文文本)
 function drawSoundHUD() {
   push(); fill(245, 242, 235, 220); noStroke(); 
   rect(20, 20, 350, 40, 8); // 宽度从 250 加大到了 350
@@ -177,7 +177,7 @@ function drawSoundHUD() {
 }
 
 // ===================================================================
-// Environment & Object Classes (Unchanged)
+// 环境与对象类 (保持不变)
 // ===================================================================
 function initPaperTexture() { paperGrain = createGraphics(width, height); paperGrain.noStroke(); paperGrain.background(240, 235, 225); paperGrain.stroke(160, 150, 130, 20); paperGrain.noFill(); for (let k = 0; k < 4000; k++) { let x=random(width), y=random(height), len=random(5,15), a=random(TWO_PI); paperGrain.strokeWeight(random(0.5, 1.2)); paperGrain.line(x, y, x+cos(a)*len, y+sin(a)*len); } paperGrain.noStroke(); for (let i=0; i<width; i+=4) { for (let j=0; j<height; j+=4) { let n=noise(i*0.01, j*0.01); if (n>0.6) { paperGrain.fill(180, 170, 150, map(n,0.6,1,0,15)); paperGrain.rect(i, j, 4, 4); } } } }
 function initWaterDepthLayer() { waterLayer = createGraphics(width, height); waterLayer.noStroke(); waterLayer.blendMode(MULTIPLY); waterLayer.fill(160, 145, 130, 150); waterLayer.beginShape(); waterLayer.vertex(0, 0); waterLayer.vertex(width, 0); for(let x=width; x>=0; x-=5) waterLayer.vertex(x, getShoreY(x)); waterLayer.endShape(CLOSE); for (let i=0; i<800; i++) { let x=random(width), y=random(height), sy=getShoreY(x); if (y>sy-10) { let depth=getPondDepth(x, y); if (depth>0.1) { waterLayer.fill(color(60, 110, 120, map(depth, 0.1, 1, 0, 15))); let r=random(100, 300); waterLayer.ellipse(x, y, r, r*0.6); } } } }
