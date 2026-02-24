@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>作业 7：仿生学 - 水墨锦鲤池塘</title>
+  <title>Assignment 7: Biomimicry - Ink Koi Pond</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
   <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
@@ -19,18 +19,18 @@
 
 <script>
 // ===================================================================
-// AI 音频设置
+// AI Audio Settings
 // ===================================================================
 let classifier;
-// 你的 Teachable Machine 模型链接
-let soundModelURL = 'https://teachablemachine.withgoogle.com/models/71MbY4B8V/';
-let currentSoundLabel = '正在初始化麦克风...';
+// Your Teachable Machine model URL
+let soundModelURL = 'https://teachablemachine.withgoogle.com/models/vlSTYsiek/';
+let currentSoundLabel = 'Initializing microphone...';
 
-// 模型中定义的“噪音/大声”类别的名称
+// The class name for loud noise/clapping in your model
 let noiseName = "noise"; 
 
 // ===================================================================
-// 水墨锦鲤系统全局变量
+// Ink Koi Pond System Variables
 // ===================================================================
 let lotusLeaves = []; let kois = []; let ripples = []; let inkDrops = [];  
 let rainDrops = []; let paperGrain; let waterLayer; let lotusFlowers = [];
@@ -38,14 +38,14 @@ let distantMountains; let brushStrokes = []; let foodItems = [];
 let bottomPebbles = []; let shoreStones = []; 
 
 const MAX_RIPPLES = 50; const MAX_INK_DROPS = 30; const MAX_FLOWERS = 15; const MAX_FOOD = 40; 
-let interactionMode = 'ink'; // 当前交互模式
+let interactionMode = 'ink'; 
 
-// 1. 预加载 AI 模型
+// 1. Preload Model
 function preload() {
   classifier = ml5.soundClassifier(soundModelURL + 'model.json');
 }
 
-// 2. 地形与深度算法（决定池塘边缘和深浅）
+// 2. Terrain & Depth Algorithms
 function getShoreY(x) {
   let diagonalY = map(x, width * 0.25, width, 0, height * 0.5);
   let macroCurve = map(noise(x * 0.0015 + 500), 0, 1, -120, 120); 
@@ -59,67 +59,56 @@ function getPondDepth(x, y) {
   let n = noise(x * 0.003, y * 0.003); let depth = baseYDepth + map(n, 0, 1, -0.3, 0.3); return constrain(depth, 0, 1);
 }
 
-// 视觉透视缩放与不透明度处理
 function getPerspectiveScale(y) { return map(y, 0, height, 0.4, 1.2); }
 function getPerspectiveOpacity(y) { return map(y, 0, height, 80, 255); }
 
-// 3. 初始化设置
+// 3. Setup
 function setup() {
   createCanvas(750, 500);
   
-  // 启动音频分类监听
+  // Start classifying audio
   classifier.classify(gotResult);
 
-  // 初始化背景纹理、水层和远山
   initPaperTexture(); initWaterDepthLayer(); createDistantMountains(); 
   
-  // 随机生成岸边石头
   let targetStones = 45, attemptsStones = 0;
   while (shoreStones.length < targetStones && attemptsStones < 1000) {
     let x = random(width * 0.15, width + 50), sy = getShoreY(x), y = sy + random(-40, 10); 
     if (!(x > width - 150 && y < 160)) shoreStones.push(new ShoreStone(x, y)); attemptsStones++;
   }
-  // 随机生成池底鹅卵石
   let targetPebbles = 25, attempts = 0;
   while (bottomPebbles.length < targetPebbles && attempts < 1000) {
     let x = random(width), sy = getShoreY(x), y = random(max(sy, 0), height * 0.7);
     if (y > sy + 20 && getPondDepth(x, y) < 0.4) bottomPebbles.push(new BottomPebble(x, y)); attempts++;
   }
-  // 生成荷叶
   let targetLeaves = 15; attempts = 0;
   while (lotusLeaves.length < targetLeaves && attempts < 1000) {
     let x = random(width), sy = getShoreY(x), y = random(max(sy, 0), height); 
     if (y > sy + 30) lotusLeaves.push(new LotusLeaf(x, y)); attempts++;
   }
-  // 初始化锦鲤
   for (let i = 0; i < 9; i++) kois.push(new Koi(random(width), random(max(getShoreY(random(width)) + 80, 0), height)));
-  // 在荷叶旁生成荷花
   for (let i = 0; i < 4; i++) if (lotusLeaves.length > 0) lotusFlowers.push(new LotusFlower(random(lotusLeaves).pos.x + random(-30, 30), random(lotusLeaves).pos.y + random(-20, 20)));
 }
 
-// 4. 核心渲染循环
+// 4. Main Draw Loop
 function draw() {
-  // 绘制背景层
   image(paperGrain, 0, 0); image(waterLayer, 0, 0); if (distantMountains) image(distantMountains, 0, 0);
   blendMode(MULTIPLY); if (random(1) < 0.3) rainDrops.push(new RainDrop());
   for (let s of brushStrokes) s.show();
 
-  // 整理所有对象并按 Y 轴排序（实现远近遮挡视觉效果）
   let allObjs = [...shoreStones, ...bottomPebbles, ...lotusLeaves, ...lotusFlowers, ...ripples, ...inkDrops, ...kois, ...rainDrops, ...foodItems];
   allObjs.sort((a, b) => ((a instanceof RainDrop) ? a.endY : a.pos.y) - ((b instanceof RainDrop) ? b.endY : b.pos.y));
   for (let obj of allObjs) { obj.update(); obj.show(); }
 
-  // 清理生命周期结束的对象
   for (let i = rainDrops.length - 1; i >= 0; i--) { let r = rainDrops[i]; if (r.hasLanded()) { ripples.push(new Ripple(r.pos.x, r.endY, false)); rainDrops.splice(i, 1); } }
   if (foodItems.length > MAX_FOOD) foodItems.splice(0, foodItems.length - MAX_FOOD); foodItems = foodItems.filter(f => !f.isDead());
   if (ripples.length > MAX_RIPPLES) ripples.splice(0, ripples.length - MAX_RIPPLES); ripples = ripples.filter(r => !r.isDone());
   if (inkDrops.length > MAX_INK_DROPS) inkDrops.splice(0, inkDrops.length - MAX_INK_DROPS); inkDrops = inkDrops.filter(i => !i.isDead());
 
   // ==========================================
-  // 【核心控制】锦鲤 AI 与 仿生行为逻辑
+  // 【Core】Koi AI & Biomimicry Behavior
   // ==========================================
   for (let koi of kois) {
-    // 寻找食物或墨滴作为目标
     let target = null, recordDist = Infinity;
     for (let food of foodItems) {
       if (food.age > 5) { 
@@ -127,55 +116,57 @@ function draw() {
         if (d < recordDist && d < 250 && abs(koi.pos.y - food.pos.y) < 60) { recordDist = d; target = food.pos; if (d < 20) { food.eaten = true; ripples.push(new Ripple(food.pos.x, food.pos.y)); } }
       }
     }
-    // 鼠标点击惊吓逃避
+    if (!target) {
+      for (let ink of inkDrops) {
+        if (ink.age > 10) { let d = dist(koi.pos.x, koi.pos.y, ink.pos.x, ink.pos.y); if (d < recordDist && d < 200 && abs(koi.pos.y - ink.pos.y) < 50) { recordDist = d; target = ink.pos; } }
+      }
+    }
     if (mouseIsPressed && dist(koi.pos.x, koi.pos.y, mouseX, mouseY) < 150) { let flee = p5.Vector.sub(koi.pos, createVector(mouseX, mouseY)); flee.setMag(0.3); koi.applyForce(flee); }
 
     // ------------------------------------------------
-    // 🐟 仿生：C型逃避反射（受惊后平滑平复逻辑）
+    // 🐟 Biomimicry: C-start Startle Response (Smooth Calm Down)
     // ------------------------------------------------
-    // 每一条锦鲤都有自己的 panic（受惊程度）值
+    // 初始化锦鲤的情绪值 (0代表平静，1代表极度惊吓)
     if (koi.panic === undefined) koi.panic = 0;
 
     if (currentSoundLabel === noiseName) {
-       koi.panic = 1.0; // 监听到大声，惊吓值满格
+       koi.panic = 1.0; // 听到巨响，情绪瞬间拉满
     } else {
-       koi.panic *= 0.95; // 声音停止后，惊吓值指数衰减（模拟神经平复）
+       koi.panic *= 0.95; // 声音消失后，情绪慢慢平复（指数衰减）
     }
 
-    // 根据受惊程度平滑改变最大速度
+    // 根据情绪值，平滑地改变鱼的最大速度 (从1.0渐变到5.0)
     koi.maxSpeed = 1.0 + (koi.panic * 4.0); 
 
-    // 如果处于受惊状态，施加混乱的推力
+    // 只要鱼还处于受惊状态(>0.05)，就会持续施加无序的乱窜力
     if (koi.panic > 0.05) {
        let panicForce = p5.Vector.random2D(); 
-       panicForce.mult(koi.panic * 1.8); 
+       panicForce.mult(koi.panic * 1.8); // 情绪越高，力越大
        koi.applyForce(panicForce); 
        
-       // 乱窜时产生小水花
+       // 惊吓时激起水花
        if (frameCount % 5 === 0 && random(1) > 0.3) {
            ripples.push(new Ripple(koi.pos.x, koi.pos.y, false)); 
        }
     }
     
-    // 如果有目标则追踪，否则随机漫游
     target ? koi.seek(target) : koi.wander(); 
-    koi.checkEdges(); // 边缘碰撞检查
+    koi.checkEdges();
   }
   
-  // 绘制 UI、书法和声音状态栏
   blendMode(BLEND); drawModeIndicator(); drawCalligraphy(); drawSoundHUD(); 
 }
 
-// 5. 音频识别结果回调
+// 5. Audio Result Callback
 function gotResult(error, results) { 
   if (error) { console.error(error); return; } 
   currentSoundLabel = results[0].label; 
 }
 
-// 6. 绘制 UI（英文文本，背景宽度已适配）
+// 6. Draw UI (Widened background to fit English text)
 function drawSoundHUD() {
   push(); fill(245, 242, 235, 220); noStroke(); 
-  rect(20, 20, 350, 40, 8); 
+  rect(20, 20, 350, 40, 8); // 宽度从 250 加大到了 350
   textSize(14); textAlign(LEFT, CENTER);
   if (currentSoundLabel === noiseName) { 
     fill(200, 50, 50); text("🐟 Startled! (Sound: " + currentSoundLabel + ")", 35, 40); 
@@ -184,3 +175,31 @@ function drawSoundHUD() {
   }
   pop();
 }
+
+// ===================================================================
+// Environment & Object Classes (Unchanged)
+// ===================================================================
+function initPaperTexture() { paperGrain = createGraphics(width, height); paperGrain.noStroke(); paperGrain.background(240, 235, 225); paperGrain.stroke(160, 150, 130, 20); paperGrain.noFill(); for (let k = 0; k < 4000; k++) { let x=random(width), y=random(height), len=random(5,15), a=random(TWO_PI); paperGrain.strokeWeight(random(0.5, 1.2)); paperGrain.line(x, y, x+cos(a)*len, y+sin(a)*len); } paperGrain.noStroke(); for (let i=0; i<width; i+=4) { for (let j=0; j<height; j+=4) { let n=noise(i*0.01, j*0.01); if (n>0.6) { paperGrain.fill(180, 170, 150, map(n,0.6,1,0,15)); paperGrain.rect(i, j, 4, 4); } } } }
+function initWaterDepthLayer() { waterLayer = createGraphics(width, height); waterLayer.noStroke(); waterLayer.blendMode(MULTIPLY); waterLayer.fill(160, 145, 130, 150); waterLayer.beginShape(); waterLayer.vertex(0, 0); waterLayer.vertex(width, 0); for(let x=width; x>=0; x-=5) waterLayer.vertex(x, getShoreY(x)); waterLayer.endShape(CLOSE); for (let i=0; i<800; i++) { let x=random(width), y=random(height), sy=getShoreY(x); if (y>sy-10) { let depth=getPondDepth(x, y); if (depth>0.1) { waterLayer.fill(color(60, 110, 120, map(depth, 0.1, 1, 0, 15))); let r=random(100, 300); waterLayer.ellipse(x, y, r, r*0.6); } } } }
+function createDistantMountains() { distantMountains = createGraphics(width, height); distantMountains.clear(); distantMountains.blendMode(MULTIPLY); distantMountains.noStroke(); let layers = [ { y: height*0.15, h: height*0.2, op: 20, c: color(130, 140, 145) }, { y: height*0.22, h: height*0.25, op: 40, c: color(110, 125, 130) }, { y: height*0.32, h: height*0.30, op: 60, c: color(90, 105, 110) } ]; for (let l of layers) { l.c.setAlpha(l.op); distantMountains.fill(l.c); distantMountains.beginShape(); distantMountains.vertex(0, height); for (let i=0; i<=6; i++) { let x=(width/6)*i, peakY=l.y+random(-l.h*0.2, l.h*0.4)+noise(i*10)*50; if (i===0) distantMountains.vertex(x, peakY); else distantMountains.bezierVertex(x-width/18, l.y+random(50), x-width/36, peakY, x, peakY); } distantMountains.vertex(width, height); distantMountains.endShape(CLOSE); } }
+
+class ShoreStone { constructor(x,y){this.pos=createVector(x,y);this.size=random(30,80);this.nOff=random(1000);this.cVal=random(25,55);} update(){} show(){let sv=getPerspectiveScale(this.pos.y),op=getPerspectiveOpacity(this.pos.y);push();translate(this.pos.x,this.pos.y);scale(sv,sv*0.7);noStroke();fill(20,20,15,op*0.4);ellipse(5*sv,10*sv,this.size*1.1,this.size*0.8);fill(this.cVal,this.cVal+5,this.cVal+10,op*(this.cVal/255+0.6));beginShape();for(let a=0;a<TWO_PI;a+=0.4)vertex(cos(a)*this.size*map(noise(cos(a)+this.nOff,sin(a)+this.nOff),0,1,0.7,1.2),sin(a)*this.size*map(noise(cos(a)+this.nOff,sin(a)+this.nOff),0,1,0.7,1.2));endShape(CLOSE);fill(this.cVal+30,op*0.5);beginShape();for(let a=0;a<TWO_PI;a+=0.5)vertex(cos(a)*this.size*0.6*map(noise(cos(a)+this.nOff+10),0,1,0.7,1.2)-this.size*0.1,sin(a)*this.size*0.6*map(noise(cos(a)+this.nOff+10),0,1,0.7,1.2)-this.size*0.1);endShape(CLOSE);pop();} }
+class BottomPebble { constructor(x,y){this.pos=createVector(x,y);this.size=random(15,40);this.nOff=random(1000);} update(){} show(){let sv=getPerspectiveScale(this.pos.y),d=getPondDepth(this.pos.x,this.pos.y),op=map(d,0,0.4,180,20);if(op<=0)return;push();translate(this.pos.x,this.pos.y);scale(sv,sv*0.5);noStroke();fill(130,125,120,op);beginShape();for(let a=0;a<TWO_PI;a+=0.5)vertex(cos(a)*this.size*map(noise(cos(a)+this.nOff,sin(a)+this.nOff),0,1,0.7,1.3),sin(a)*this.size*map(noise(cos(a)+this.nOff,sin(a)+this.nOff),0,1,0.7,1.3));endShape(CLOSE);pop();} }
+class Koi { constructor(x,y){this.pos=createVector(x,y);this.vel=p5.Vector.random2D();this.acc=createVector(0,0);this.maxSpeed=1.0;this.maxForce=0.05;this.size=random(25,35);this.type=random()<0.5?'red':'black';this.bodyFlow=random(1000);this.depthNoiseOffset=random(1000);} seek(target){let desired=p5.Vector.sub(target,this.pos);desired.setMag(this.maxSpeed*2);let steer=p5.Vector.sub(desired,this.vel);steer.limit(this.maxForce*2);this.applyForce(steer);} wander(){let angle=noise(this.pos.x*0.005,this.pos.y*0.005,frameCount*0.003)*TWO_PI*4;let steer=p5.Vector.fromAngle(angle);steer.setMag(0.03);this.applyForce(steer);} applyForce(f){this.acc.add(f);} update(){this.vel.add(this.acc);this.vel.limit(this.maxSpeed);this.pos.add(this.vel);this.acc.mult(0);} checkEdges(){let desired=null,margin=50,localShoreY=getShoreY(this.pos.x);if(this.pos.y<localShoreY+50)desired=createVector(-0.5,1);else if(this.pos.y>height-margin)desired=createVector(0,-1);else if(this.pos.x<margin)desired=createVector(1,0);else if(this.pos.x>width-margin)desired=createVector(-1,0);if(desired){desired.normalize();desired.mult(this.maxSpeed);let steer=p5.Vector.sub(desired,this.vel);steer.limit(this.maxForce*3);this.applyForce(steer);}if(this.pos.y<localShoreY+10){this.pos.y=localShoreY+10;this.vel.y=Math.abs(this.vel.y);this.vel.x-=0.5;}} show(){let theta=this.vel.heading()+PI/2,sv=getPerspectiveScale(this.pos.y),op=getPerspectiveOpacity(this.pos.y),localPondDepth=getPondDepth(this.pos.x,this.pos.y),rawNoise=noise(frameCount*0.004+this.depthNoiseOffset),swimLevel=constrain(map(rawNoise,0.3,0.7,0,1),0,1),actualDepth=localPondDepth*swimLevel,distToBottom=localPondDepth-actualDepth,visualShrink=map(actualDepth,0,1,1.0,0.85),shadowDist=map(distToBottom,0,1,2,35)*sv,shadowOp=map(distToBottom,0,1,op*0.25,op*0.03);push();translate(this.pos.x,this.pos.y);push();translate(8*sv,shadowDist);rotate(theta);scale(sv*visualShrink);noStroke();fill(20,20,15,shadowOp);ellipse(0,0,this.size*0.6,this.size*1.5);ellipse(0,-this.size*0.4,this.size*0.65,this.size*0.7);pop();rotate(theta);scale(sv*visualShrink);noStroke();let baseColor=this.type==='red'?color(210,50,40,op*0.85):color(40,45,50,op*0.85),deepWaterColor=color(50,100,110,op),bodyColor=lerpColor(baseColor,deepWaterColor,actualDepth*0.85);fill(bodyColor);ellipse(0,0,this.size*0.6,this.size*1.5);ellipse(0,-this.size*0.4,this.size*0.65,this.size*0.7);if(this.type==='red'){fill(lerpColor(color(180,20,20,op),deepWaterColor,actualDepth*0.85));ellipse(0,-this.size*0.5,this.size*0.4,this.size*0.4);}let swing=sin(frameCount*0.2+this.bodyFlow)*0.5;push();translate(0,this.size*0.7);rotate(swing);fill(red(bodyColor),green(bodyColor),blue(bodyColor),op*0.5);push();rotate(PI/6);ellipse(0,8,this.size*0.25,this.size*0.7);pop();push();rotate(-PI/6);ellipse(0,8,this.size*0.25,this.size*0.7);pop();pop();let finWave=cos(frameCount*0.15+this.bodyFlow)*0.4;fill(red(bodyColor),green(bodyColor),blue(bodyColor),op*0.4);push();translate(-this.size*0.25,-this.size*0.2);rotate(-PI/4+finWave);ellipse(0,0,this.size*0.2,this.size*0.5);pop();push();translate(this.size*0.25,-this.size*0.2);rotate(PI/4-finWave);ellipse(0,0,this.size*0.2,this.size*0.5);pop();pop();} }
+class Food { constructor(x,y){this.pos=createVector(x,y);this.age=0;this.maxAge=600;this.size=random(4,8);this.sinkSpeed=random(0.2,0.5);this.wobble=random(1000);this.eaten=false;this.dissolveStart=random(300,400);} update(){this.age++;if(!this.eaten){this.pos.y+=this.sinkSpeed;this.pos.x+=sin(frameCount*0.05+this.wobble)*0.3;}} show(){if(this.eaten)return;let sv=getPerspectiveScale(this.pos.y),op=getPerspectiveOpacity(this.pos.y),dissolveAlpha=this.age>this.dissolveStart?map(this.age,this.dissolveStart,this.maxAge,1.0,0):1.0;push();translate(this.pos.x,this.pos.y);scale(sv);noStroke();fill(200,180,140,op*dissolveAlpha*0.9);ellipse(0,0,this.size);fill(230,220,200,op*dissolveAlpha*0.6);ellipse(-this.size*0.2,-this.size*0.2,this.size*0.5);fill(190,170,130,op*dissolveAlpha*0.2);ellipse(0,0,this.size*1.6);pop();} isDead(){return this.eaten||this.age>this.maxAge;} }
+class RainDrop { constructor(){let valid=false,attempts=0;while(!valid&&attempts<50){this.x=random(width);this.endY=random(height*0.15,height);if(this.endY>getShoreY(this.x)+10)valid=true;attempts++;}this.scale=getPerspectiveScale(this.endY);this.len=random(20,40)*this.scale;this.pos=createVector(this.x,this.endY-random(300,500)*this.scale);this.velY=random(15,20)*this.scale;this.color=color(200,215,220,getPerspectiveOpacity(this.endY)*0.8);} update(){this.pos.y+=this.velY;this.velY+=0.5*this.scale;} show(){push();stroke(this.color);strokeWeight(1.5*this.scale);line(this.pos.x,this.pos.y,this.pos.x-2*this.scale,this.pos.y+this.len);pop();} hasLanded(){return this.pos.y>=this.endY;} }
+class LotusLeaf { constructor(x,y){this.pos=createVector(x,y);this.size=random(70,130);this.angle=random(TWO_PI);this.noiseOffset=random(1000);this.color=color(random(70,90),random(100,120),random(90,100),random(160,210));} update(){this.angle+=map(noise(frameCount*0.005+this.noiseOffset),0,1,-0.002,0.002);} show(){let sv=getPerspectiveScale(this.pos.y),op=getPerspectiveOpacity(this.pos.y);push();translate(this.pos.x,this.pos.y);noStroke();fill(20,20,15,op*0.15);ellipse(8*sv,15*sv,this.size*sv*1.1,this.size*sv*0.6);scale(sv,sv*0.6);rotate(this.angle);fill(red(this.color),green(this.color),blue(this.color),op*alpha(this.color)/255);ellipse(0,0,this.size,this.size*0.9);for(let i=0;i<6;i++){let a=(TWO_PI/6)*i;fill(red(this.color),green(this.color),blue(this.color),op*0.2);ellipse(cos(a)*this.size*0.3,sin(a)*this.size*0.3,this.size*0.65,this.size*0.55);}stroke(255,255,255,op*0.15);strokeWeight(1);for(let i=0;i<8;i++)line(0,0,cos(i*PI/4)*this.size*0.45,sin(i*PI/4)*this.size*0.4);noStroke();fill(20,30,40,op*0.5);ellipse(0,0,10,10);fill(255,255,255,op*0.1);ellipse(-this.size*0.2,-this.size*0.2,this.size*0.4,this.size*0.3);pop();} }
+class LotusFlower { constructor(x,y){this.pos=createVector(x,y);this.size=random(30,50);this.petalCount=floor(random(6,9));this.rotation=random(TWO_PI);this.bloomProgress=0;this.color=random()<0.3?color(230,190,200,180):color(245,240,235,180);} update(){if(this.bloomProgress<1)this.bloomProgress+=0.01;this.rotation+=0.001;} show(){let sv=getPerspectiveScale(this.pos.y),op=getPerspectiveOpacity(this.pos.y);push();translate(this.pos.x,this.pos.y);translate(0,-10*sv);scale(sv,sv*0.8);rotate(this.rotation);noStroke();let bloomSize=this.size*this.bloomProgress;for(let i=0;i<this.petalCount;i++){push();rotate((TWO_PI/this.petalCount)*i);fill(red(this.color),green(this.color),blue(this.color),op*alpha(this.color)/255);ellipse(0,-bloomSize*0.3,bloomSize*0.4,bloomSize*0.7);pop();}fill(230,190,80,op*0.8);ellipse(0,0,bloomSize*0.25);pop();} }
+class InkDrop { constructor(x,y){this.pos=createVector(x,y);this.age=0;this.maxAge=400;this.radius=random(5,10);this.maxRadius=random(30,60);this.inkColor=random(20,50);} update(){this.age++;if(this.radius<this.maxRadius)this.radius+=(this.maxRadius-this.radius)*0.03;} show(){let sv=getPerspectiveScale(this.pos.y),op=map(this.age,0,this.maxAge,150,0)*(getPerspectiveOpacity(this.pos.y)/255);noStroke();push();translate(this.pos.x,this.pos.y);scale(sv,sv*0.6);fill(this.inkColor,this.inkColor,this.inkColor+5,op);ellipse(0,0,this.radius*0.5);fill(this.inkColor+5,this.inkColor+10,this.inkColor+15,op*0.4);ellipse(0,0,this.radius);fill(this.inkColor+15,this.inkColor+20,this.inkColor+25,op*0.1);ellipse(0,0,this.radius*1.3);pop();} isDead(){return this.age>this.maxAge;} }
+class Ripple { constructor(x,y,isDetailed=true){this.pos=createVector(x,y);this.isDetailed=isDetailed;this.noiseOffset=random(1000);if(this.isDetailed){this.age=0;this.maxAge=250;}else{this.r=2;this.life=150;}} update(){if(this.isDetailed)this.age+=1.0;else{this.r+=1.0;this.life-=1.0;}} show(){let sv=getPerspectiveScale(this.pos.y),depthOp=getPerspectiveOpacity(this.pos.y)/255;push();translate(this.pos.x,this.pos.y);scale(sv,sv*0.5);noFill();if(this.isDetailed){for(let i=0;i<3;i++){let ringAge=this.age-(i*30);if(ringAge>0&&ringAge<this.maxAge){let baseR=ringAge*1.2,ringOp=map(ringAge,0,this.maxAge,180,0)*depthOp,sw=map(ringAge,0,this.maxAge,3,0.2);stroke(140,160,170,max(0,ringOp));strokeWeight(max(0.1,sw));beginShape();for(let a=0;a<TWO_PI;a+=0.1){let n=noise(map(cos(a),-1,1,0,1.5)+this.noiseOffset,map(sin(a),-1,1,0,1.5)+this.noiseOffset,ringAge*0.02);let offset=map(n,0,1,-map(ringAge,0,this.maxAge,baseR*0.05,baseR*0.15),map(ringAge,0,this.maxAge,baseR*0.05,baseR*0.15));vertex(cos(a)*(baseR+offset),sin(a)*(baseR+offset));}endShape(CLOSE);}}}else{let op=this.life*0.4*depthOp;stroke(100,110,115,op);strokeWeight(1.5);beginShape();for(let a=0;a<TWO_PI;a+=0.2){let n=noise(map(cos(a),-1,1,0,1)+this.noiseOffset,map(sin(a),-1,1,0,1)+this.noiseOffset,this.life*0.05);vertex(cos(a)*(this.r+map(n,0,1,-this.r*0.1,this.r*0.1)),sin(a)*(this.r+map(n,0,1,-this.r*0.1,this.r*0.1)));}endShape(CLOSE);}pop();} isDone(){if(this.isDetailed)return this.age>this.maxAge+60;else return this.life<0;} }
+class BrushStroke { constructor(y){this.points=[];this.baseY=y||height/2;} addPoint(x,y){this.points.push({x,y,pressure:random(0.6,1.0)});} show(){if(this.points.length<2)return;let sv=getPerspectiveScale(this.baseY);push();noFill();for(let i=0;i<this.points.length-1;i++){let p1=this.points[i],p2=this.points[i+1];stroke(35,30,25,p1.pressure*180);strokeWeight(p1.pressure*12*sv);line(p1.x,p1.y,p2.x,p2.y);}pop();} }
+
+function drawCalligraphy() { push(); blendMode(MULTIPLY); textAlign(RIGHT, TOP); fill(50, 45, 40, 200); textSize(24); text('半亩方塘', width - 40, 30); textSize(14); fill(80, 70, 60, 150); text('水墨丹青', width - 50, 65); stroke(160, 40, 40, 180); strokeWeight(2); noFill(); rect(width - 75, 100, 35, 35); fill(160, 40, 40, 180); noStroke(); rect(width-70,105,8,8); rect(width-55,105,8,8); rect(width-70,120,8,8); rect(width-55,120,8,8); pop(); }
+function drawModeIndicator() { push(); fill(245, 242, 235, 220); noStroke(); rect(20, height - 80, 420, 60, 8); fill(60, 55, 50); textAlign(LEFT, CENTER); textSize(14); let modeNames = { ink:'Ink', ripple:'Ripple', flower:'Lotus', brush:'Brush', feed:'Feed' }; text(`Mode: ${modeNames[interactionMode]}  |  Space: Switch  |  1-5: Select  |  C: Clear`, 35, height - 50); pop(); }
+function mousePressed() { if (getPondDepth(mouseX, mouseY) <= 0) return; if (interactionMode === 'ink') inkDrops.push(new InkDrop(mouseX, mouseY)); else if (interactionMode === 'ripple') ripples.push(new Ripple(mouseX, mouseY)); else if (interactionMode === 'flower') lotusFlowers.push(new LotusFlower(mouseX, mouseY)); else if (interactionMode === 'brush') { brushStrokes.push(new BrushStroke(mouseY)); brushStrokes[brushStrokes.length-1].addPoint(mouseX, mouseY); } else if (interactionMode === 'feed') foodItems.push(new Food(mouseX, mouseY)); }
+function mouseDragged() { if (getPondDepth(mouseX, mouseY) <= 0) return; if (interactionMode === 'ink' && frameCount%3===0) inkDrops.push(new InkDrop(mouseX, mouseY)); else if (interactionMode === 'brush' && brushStrokes.length>0) brushStrokes[brushStrokes.length-1].addPoint(mouseX, mouseY); else if (interactionMode === 'feed' && frameCount%5===0) foodItems.push(new Food(mouseX, mouseY)); }
+function keyPressed() { if(key===' ') { let modes=['ink','ripple','flower','brush','feed']; interactionMode=modes[(modes.indexOf(interactionMode)+1)%modes.length]; } if(key==='1') interactionMode='ink'; if(key==='2') interactionMode='ripple'; if(key==='3') interactionMode='flower'; if(key==='4') interactionMode='brush'; if(key==='5') interactionMode='feed'; if(key==='c'||key==='C') { ripples=[]; inkDrops=[]; brushStrokes=[]; foodItems=[]; } }
+
+</script>
+</body>
+</html>
